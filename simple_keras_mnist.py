@@ -23,8 +23,9 @@ def load_dataset():
     print('Loading training data:')
     for i in range(NUM_CLASSES):
         print(i)
-        for fname in os.listdir(os.path.join(cwd, 'mnist_png', 'training', str(i))):
-            fullfname = os.path.join(cwd, 'mnist_png', 'training', str(i), fname)
+        pathname = os.path.join(cwd, 'mnist_png', 'training', str(i))
+        for fname in os.listdir(pathname):
+            fullfname = os.path.join(pathname, fname)
             img = cv2.imread(fullfname, 0)
             training_images.append(img)
             training_labels.append(i)
@@ -38,8 +39,9 @@ def load_dataset():
     print('Loading test data:')
     for i in range(NUM_CLASSES):
         print(i)
-        for fname in os.listdir(os.path.join(cwd, 'mnist_png', 'testing', str(i))):
-            img = cv2.imread(os.path.join(cwd, 'mnist_png', 'testing', str(i), fname), 0)
+        pathname = os.path.join(cwd, 'mnist_png', 'testing', str(i))
+        for fname in os.listdir(pathname):
+            img = cv2.imread(os.path.join(pathname, fname), 0)
             test_images.append(img)
             test_labels.append(i)
     test_images = np.stack(test_images, axis=0)
