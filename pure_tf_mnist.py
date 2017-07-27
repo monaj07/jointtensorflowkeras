@@ -50,12 +50,6 @@ def load_dataset():
 
     return (training_images, training_labels, test_images, test_labels)
 
-def get_w(shape, name):
-    return tf.Variable(tf.truncated_normal(shape, stddev=0.05), name=name)
-
-def get_b(shape, name):
-    return tf.Variable(tf.zeros(shape), name=name)
-
 def get_batch(step, bs, images, labels):
     n = images.shape[0]
     if (step+1)*bs > n:
@@ -95,17 +89,42 @@ def main():
     do_rate = tf.placeholder(dtype=tf.float32, name='dropout_rate')
     # pdb.set_trace()
 
-    conv1 = tf.nn.conv2d(input=input_data, filter=get_w([3,3,1,32], 'conv1_w'), strides=[1,1,1,1], padding='SAME', name='conv1')
-    relu1 = tf.nn.relu(conv1 + get_b([32], 'conv1_b'))
-    pool1 = tf.nn.max_pool(value=relu1, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME', name='pool1')
-    conv2 = tf.nn.conv2d(input=pool1, filter=get_w([3,3,32,32], 'conv2_w'), strides=[1,1,1,1], padding='VALID', name='conv2')
-    relu2 = tf.nn.relu(conv2 + get_b([32], 'conv2_b'))
-    pool2 = tf.nn.max_pool(value=relu2, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME', name='pool2')
-    flat  = tf.reshape(pool2, [-1,6*6*32], name='reshape')
-    dense1= tf.matmul(flat, get_w([6*6*32,128], 'dense1_w'), name='dense1')
-    relu3 = tf.nn.relu(dense1 + get_b([128], 'dense1_b'), name='relu1')
-    dropout1 = tf.nn.dropout(relu3, do_rate, name='dropout1')
-    output = tf.matmul(dropout1, get_w([128, NUM_CLASSES], 'out_w'), name='output') + get_b([NUM_CLASSES], 'out_b')
+    with tf.name_scope('conv1'):
+        with tf.variable_scope('conv1'):
+            W_conv1 = tf.get_variable('w', [3,3,1,32])
+            b_conv1 = tf.get_variable('b', [32])
+        conv1 = tf.nn.conv2d(input=input_data, filter=W_conv1, strides=[1,1,1,1], padding='SAME')
+        relu1 = tf.nn.relu(conv1 + b_conv1)
+
+    with tf.name_scope('pool1'):
+        pool1 = tf.nn.max_pool(value=relu1, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+
+    with tf.name_scope('conv2'):
+        with tf.variable_scope('conv2'):
+            W_conv2 = tf.get_variable('w', [3,3,32,32])
+            b_conv2 = tf.get_variable('b', [32])
+        conv2 = tf.nn.conv2d(input=pool1, filter=W_conv2, strides=[1,1,1,1], padding='VALID')
+        relu2 = tf.nn.relu(conv2 + b_conv2)
+
+    with tf.name_scope('pool2'):
+        pool2 = tf.nn.max_pool(value=relu2, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+
+    with tf.name_scope('dense1'):
+        with tf.variable_scope('dense1'):
+            W_dense1 = tf.get_variable('w', [6*6*32,128])
+            b_dense1 = tf.get_variable('b', 128)
+        flat  = tf.reshape(pool2, [-1,6*6*32], name='reshape')
+        dense1= tf.matmul(flat, W_dense1)
+        relu3 = tf.nn.relu(dense1 + b_dense1)
+
+    with tf.name_scope('dropout'):
+        dropout = tf.nn.dropout(relu3, do_rate)
+
+    with tf.name_scope('output'):
+        with tf.variable_scope('output'):
+            W_out = tf.get_variable('w', [128,NUM_CLASSES])
+            b_out = tf.get_variable('b', [NUM_CLASSES])
+        output = tf.matmul(dropout, W_out) + b_out
 
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=input_labels, logits=output, name='loss'))
     train_op = tf.train.AdamOptimizer(1e-4).minimize(loss)
@@ -118,7 +137,6 @@ def main():
     
     for i in range(epochs):
         steps = (int)(np.ceil(float(N)/float(BATCH_SIZE)))
-        print(steps)
         total_l = 0
         total_acc = 0
         for step in range(steps):
