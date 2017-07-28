@@ -65,6 +65,7 @@ def main():
     # plt.imshow(training_images[:,:,0], cmap='gray')
     # plt.show()
 
+
     N = training_labels.size
     Nt = test_labels.size
     perm_train = np.random.permutation(N)
@@ -168,48 +169,53 @@ def main():
     train_op = tf.train.AdamOptimizer(1e-4).minimize(loss)
     accuracy = tf.cast(tf.equal(tf.argmax(input_labels, 1), tf.argmax(output, 1)), tf.float32)
 
-    # Training:
-    sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
-    writer = tf.summary.FileWriter('graph', sess.graph)
-
-    print('\n\n')
+    print('')
     print('-------------------------------------------------------')
-    print('--------------- Training phase ------------------------')
+    print('---------- Starting a TF session ----------------------')
     print('-------------------------------------------------------')
-    for i in range(epochs):
-        steps = (int)(np.ceil(float(N)/float(BATCH_SIZE)))
-        total_l = 0
-        total_acc = 0
-        for step in range(steps):
-            x_in, y_in = get_batch(step, BATCH_SIZE, training_images, training_labels)
-            l, acc, _ = sess.run([loss, accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:0.5})
-            total_l += l
-            total_acc += np.sum(acc)
-            #pdb.set_trace()
-        total_acc /= np.float32(N)
-        print("Epoch {}: Training loss = {}, Training accuracy = {}".format(i,total_l,total_acc))
+    print('')
 
-    # Test:
-    total_acc = 0
-    steps = (int)(np.ceil(float(Nt)/float(BATCH_SIZE)))
-    for step in range(steps):
-        x_in, y_in = get_batch(step, BATCH_SIZE, test_images, test_labels)
-        acc, _ = sess.run([accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:1})
-        total_acc += np.sum(acc)
-    total_acc /= np.float32(Nt)
-    print('\n-----------------------')
-    print("Test accuracy = {}".format(total_acc))
-    print('-------------------------------------------------------')
-
-    #################################################################
-    ### Exporting the trained weights into a list of numpy vectors
     tf_weights = []
-    for v in tf.trainable_variables():
-        tf_weights.append(sess.run(v))
+    tf.set_random_seed(1234)
+    # Training:
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        writer = tf.summary.FileWriter('graph', sess.graph)
 
-    sess.close()
-    writer.close()
+        print('-------------------------------------------------------')
+        print('--------------- Training phase ------------------------')
+        print('-------------------------------------------------------')
+        for i in range(epochs):
+            steps = (int)(np.ceil(float(N)/float(BATCH_SIZE)))
+            total_l = 0
+            total_acc = 0
+            for step in range(steps):
+                x_in, y_in = get_batch(step, BATCH_SIZE, training_images, training_labels)
+                l, acc, _ = sess.run([loss, accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:0.5})
+                total_l += l
+                total_acc += np.sum(acc)
+                #pdb.set_trace()
+            total_acc /= np.float32(N)
+            print("Epoch {}: Training loss = {}, Training accuracy = {}".format(i,total_l,total_acc))
+
+        # Test:
+        total_acc = 0
+        steps = (int)(np.ceil(float(Nt)/float(BATCH_SIZE)))
+        for step in range(steps):
+            x_in, y_in = get_batch(step, BATCH_SIZE, test_images, test_labels)
+            acc, _ = sess.run([accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:1})
+            total_acc += np.sum(acc)
+        total_acc /= np.float32(Nt)
+        print('\n-----------------------')
+        print("Test accuracy = {}".format(total_acc))
+        print('-------------------------------------------------------')
+
+        #################################################################
+        ### Exporting the trained weights into a list of numpy vectors
+        for v in tf.trainable_variables():
+            tf_weights.append(sess.run(v))
+
+        writer.close()
 
     print('')
     print('-------------------------------------------------------')
@@ -234,7 +240,6 @@ def main():
 
     #################################################################
     ### Loarding the already trained weights, onto the keras layers 
-    nLayers = len(model.layers)
     c = 0 # counter for iterating over tensorflow trainable variables
     #pdb.set_trace()
     for l in model.layers:
