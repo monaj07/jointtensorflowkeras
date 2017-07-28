@@ -82,7 +82,7 @@ def main():
 
     BATCH_SIZE = 32*8
     WIDTH, HEIGHT = 28, 28
-    epochs = 5
+    epochs = 30
 
     # Defiining the placeholders
     input_data = tf.placeholder(dtype=tf.float32, shape=[None, HEIGHT, WIDTH, 1], name='data')
@@ -90,7 +90,7 @@ def main():
     do_rate = tf.placeholder(dtype=tf.float32, name='dropout_rate')
     # pdb.set_trace()
 
-    '''
+
     with tf.name_scope('conv1'):
         with tf.variable_scope('conv1'):
             W_conv1 = tf.get_variable('w', [3,3,1,32])
@@ -127,9 +127,9 @@ def main():
             W_out = tf.get_variable('w', [128,NUM_CLASSES])
             b_out = tf.get_variable('b', [NUM_CLASSES])
         output = tf.matmul(dropout, W_out) + b_out
-    '''
 
-    print('-------------------------------------------------------')
+    '''
+    ################################################################
     """ Using Keras layers instead """
     #input_layer = Input(shape=(HEIGHT, WIDTH, 1), name='input_layer')
     Kcnn1 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='same', activation='relu')(input_data)
@@ -144,7 +144,8 @@ def main():
     except for the feed_dict, where instead of do_rate in tensorflow,
     we need to provide keras specific dropout tensor 'learning_phase'
     in the backend of Keras. """
-    print('-------------------------------------------------------')
+    ################################################################
+    '''
 
     print('\n\n')
     print('-------------------------------------------------------')
@@ -172,13 +173,17 @@ def main():
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter('graph', sess.graph)
 
+    print('\n\n')
+    print('-------------------------------------------------------')
+    print('--------------- Training phase ------------------------')
+    print('-------------------------------------------------------')
     for i in range(epochs):
         steps = (int)(np.ceil(float(N)/float(BATCH_SIZE)))
         total_l = 0
         total_acc = 0
         for step in range(steps):
             x_in, y_in = get_batch(step, BATCH_SIZE, training_images, training_labels)
-            l, acc, _ = sess.run([loss, accuracy, train_op], {input_data:x_in, input_labels:y_in, learning_phase():1})#do_rate:0.5})
+            l, acc, _ = sess.run([loss, accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:0.5})
             total_l += l
             total_acc += np.sum(acc)
             #pdb.set_trace()
@@ -190,17 +195,72 @@ def main():
     steps = (int)(np.ceil(float(Nt)/float(BATCH_SIZE)))
     for step in range(steps):
         x_in, y_in = get_batch(step, BATCH_SIZE, test_images, test_labels)
-        acc, _ = sess.run([accuracy, train_op], {input_data:x_in, input_labels:y_in, learning_phase():0})#do_rate:1})
+        acc, _ = sess.run([accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:1})
         total_acc += np.sum(acc)
     total_acc /= np.float32(Nt)
-    print('\n--------------------------\n')
+    print('\n-----------------------')
     print("Test accuracy = {}".format(total_acc))
+    print('-------------------------------------------------------')
 
+    #################################################################
+    ### Exporting the trained weights into a list of numpy vectors
+    tf_weights = []
+    for v in tf.trainable_variables():
+        tf_weights.append(sess.run(v))
 
     sess.close()
     writer.close()
+
+    print('')
+    print('-------------------------------------------------------')
+    print('---------- Starting a Keras session -------------------')
+    print('-------------------------------------------------------')
+    print('')
+
+    #################################################################
+    """ Building a Keras Model """
+    input_layer = Input(shape=(HEIGHT, WIDTH, 1), name='input_layer')
+    Kcnn1 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='same', activation='relu')(input_layer)
+    Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn1)
+    Kcnn2 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='valid', activation='relu')(Kmaxpool)
+    Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn2)
+    Kflat = Flatten()(Kmaxpool)
+    Kdense1 = Dense(units=128, activation='relu')(Kflat)
+    Kdropout = Dropout(.5)(Kdense1)
+    output_layer = Dense(units=NUM_CLASSES, activation='softmax')(Kdropout)
+    model = Model(inputs=input_layer, outputs=output_layer)
+    model.compile(optimizer=tf.train.AdamOptimizer(), loss='categorical_crossentropy', metrics=['accuracy'])
+    #################################################################
+
+    #################################################################
+    ### Loarding the already trained weights, onto the keras layers 
+    nLayers = len(model.layers)
+    c = 0 # counter for iterating over tensorflow trainable variables
+    #pdb.set_trace()
+    for l in model.layers:
+        trainable_weights = l.trainable_weights
+        if not trainable_weights:
+            # empty trainable weight list in this keras layer; so move on to the next layer.
+            continue
+        len_w = len(trainable_weights) # e.g. for a normal conv layer, it is two: weight and bias.
+        l.set_weights(tf_weights[c:c+len_w])
+        c += len_w
+
+
+    accuracy = model.evaluate(x=test_images, y=test_labels, batch_size=BATCH_SIZE)
+    print('\n')
+    print('Keras test score = {}'.format(accuracy))
+    print('\n')
+
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+
 
 
 
