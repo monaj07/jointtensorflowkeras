@@ -1,10 +1,11 @@
 
 import tensorflow as tf
-#import tensorflow.contrib.keras as keras
-#from tensorflow.contrib.keras.python.keras.layers import Input, Conv2D, MaxPooling2D
-#from tensorflow.contrib.keras.python.keras.layers.core import Dropout, Dense, Flatten
-#from tensorflow.contrib.keras.python.keras.models import Model
+import tensorflow.contrib.keras as keras
+from tensorflow.contrib.keras.python.keras.layers import Input, Conv2D, MaxPooling2D
+from tensorflow.contrib.keras.python.keras.layers.core import Dropout, Dense, Flatten
+from tensorflow.contrib.keras.python.keras.models import Model
 from tensorflow.contrib.keras.python.keras.utils import to_categorical
+from tensorflow.contrib.keras.python.keras.backend import learning_phase
 import matplotlib.pyplot as plt
 import os
 import cv2
@@ -89,6 +90,7 @@ def main():
     do_rate = tf.placeholder(dtype=tf.float32, name='dropout_rate')
     # pdb.set_trace()
 
+    '''
     with tf.name_scope('conv1'):
         with tf.variable_scope('conv1'):
             W_conv1 = tf.get_variable('w', [3,3,1,32])
@@ -125,14 +127,34 @@ def main():
             W_out = tf.get_variable('w', [128,NUM_CLASSES])
             b_out = tf.get_variable('b', [NUM_CLASSES])
         output = tf.matmul(dropout, W_out) + b_out
+    '''
 
-    print('\n\n-------------------------------------------------------')
+    print('-------------------------------------------------------')
+    """ Using Keras layers instead """
+    #input_layer = Input(shape=(HEIGHT, WIDTH, 1), name='input_layer')
+    Kcnn1 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='same', activation='relu')(input_data)
+    Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn1)
+    Kcnn2 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='valid', activation='relu')(Kmaxpool)
+    Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn2)
+    Kflat = Flatten()(Kmaxpool)
+    Kdense1 = Dense(units=128, activation='relu')(Kflat)
+    Kdropout = Dropout(.5)(Kdense1)
+    output = Dense(units=NUM_CLASSES, activation='softmax')(Kdropout)
+    """ The rest of the code is almost the same as in pure_tf_mnist.py,
+    except for the feed_dict, where instead of do_rate in tensorflow,
+    we need to provide keras specific dropout tensor 'learning_phase'
+    in the backend of Keras. """
+    print('-------------------------------------------------------')
+
+    print('\n\n')
+    print('-------------------------------------------------------')
     print('--------------- Trainable parameters ------------------')
     print('-------------------------------------------------------')
     total_parameters = 0
     for v in tf.trainable_variables():
         shape = v.get_shape()
         print(shape)
+        #pdb.set_trace()
         params = 1
         for dim in shape:
             params *= dim.value
@@ -149,14 +171,14 @@ def main():
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter('graph', sess.graph)
-    
+
     for i in range(epochs):
         steps = (int)(np.ceil(float(N)/float(BATCH_SIZE)))
         total_l = 0
         total_acc = 0
         for step in range(steps):
             x_in, y_in = get_batch(step, BATCH_SIZE, training_images, training_labels)
-            l, acc, _ = sess.run([loss, accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:0.5})
+            l, acc, _ = sess.run([loss, accuracy, train_op], {input_data:x_in, input_labels:y_in, learning_phase():1})#do_rate:0.5})
             total_l += l
             total_acc += np.sum(acc)
             #pdb.set_trace()
@@ -167,11 +189,13 @@ def main():
     steps = (int)(np.ceil(float(Nt)/float(BATCH_SIZE)))
     for step in range(steps):
         x_in, y_in = get_batch(step, BATCH_SIZE, test_images, test_labels)
-        acc, _ = sess.run([accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:1})
+        acc, _ = sess.run([accuracy, train_op], {input_data:x_in, input_labels:y_in, learning_phase():0})#do_rate:1})
         total_acc += np.sum(acc)
     total_acc /= np.float32(Nt)
     print('\n--------------------------\n')
     print("Test accuracy = {}".format(total_acc))
+
+
     sess.close()
     writer.close()
 if __name__ == '__main__':
