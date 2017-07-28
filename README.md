@@ -8,6 +8,8 @@
 ### How do I get set up? ###
 
 1. First, implement a pure tensorflow code for a simple task, like MNIST digit recognition.
-2. Save the weights of the trained network.
-3. Modify the previous network by re-defining some layers using Keras.Then train the network using Tensorflow optimizer.
-4. Grab the weights learned in the pure-Tensorflow network (step 2), and see if you can load them in the Keras-Tensorflow network (in step 3). See if you get a similar result.
+2. Do the same thing in pure Keras
+3. Save the weights of the trained tensorflow network.
+4. See if you can load them in Keras, based on the instruction in: https://github.com/fchollet/keras/issues/5273
+5. a: Modify the pure tensorflow network by re-defining some layers using Keras. b: Then train the network using Tensorflow optimizer.
+6. See if you can load the weights of the trained tensorflow network (obtained in step 3) onto the joint Keras-Tensorflow network (as you have defined in 5-a)
