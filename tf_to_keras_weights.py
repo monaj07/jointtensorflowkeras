@@ -91,7 +91,7 @@ def main():
     do_rate = tf.placeholder(dtype=tf.float32, name='dropout_rate')
     # pdb.set_trace()
 
-
+    
     with tf.name_scope('conv1'):
         with tf.variable_scope('conv1'):
             W_conv1 = tf.get_variable('w', [3,3,1,32])
@@ -134,10 +134,10 @@ def main():
     """ Using Keras layers instead """
     #input_layer = Input(shape=(HEIGHT, WIDTH, 1), name='input_layer')
     Kcnn1 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='same', activation='relu')(input_data)
-    Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn1)
-    Kcnn2 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='valid', activation='relu')(Kmaxpool)
-    Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn2)
-    Kflat = Flatten()(Kmaxpool)
+    Kmaxpool1 = MaxPooling2D(pool_size=2)(Kcnn1)
+    Kcnn2 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='valid', activation='relu')(Kmaxpool1)
+    Kmaxpool2 = MaxPooling2D(pool_size=2)(Kcnn2)
+    Kflat = Flatten()(Kmaxpool2)
     Kdense1 = Dense(units=128, activation='relu')(Kflat)
     Kdropout = Dropout(.5)(Kdense1)
     output = Dense(units=NUM_CLASSES, activation='softmax')(Kdropout)
@@ -146,7 +146,7 @@ def main():
     we need to provide keras specific dropout tensor 'learning_phase'
     in the backend of Keras. """
     ################################################################
-    '''
+    ''' 
 
     print('\n\n')
     print('-------------------------------------------------------')
@@ -203,7 +203,7 @@ def main():
         steps = (int)(np.ceil(float(Nt)/float(BATCH_SIZE)))
         for step in range(steps):
             x_in, y_in = get_batch(step, BATCH_SIZE, test_images, test_labels)
-            acc, _ = sess.run([accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:1})
+            acc = sess.run([accuracy], {input_data:x_in, input_labels:y_in, do_rate:1})
             total_acc += np.sum(acc)
         total_acc /= np.float32(Nt)
         print('\n-----------------------')
@@ -226,14 +226,14 @@ def main():
     #################################################################
     """ Building a Keras Model """
     input_layer = Input(shape=(HEIGHT, WIDTH, 1), name='input_layer')
-    Kcnn1 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='same', activation='relu')(input_layer)
-    Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn1)
-    Kcnn2 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='valid', activation='relu')(Kmaxpool)
-    Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn2)
-    Kflat = Flatten()(Kmaxpool)
-    Kdense1 = Dense(units=128, activation='relu')(Kflat)
-    Kdropout = Dropout(.5)(Kdense1)
-    output_layer = Dense(units=NUM_CLASSES, activation='softmax')(Kdropout)
+    Kkcnn1 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='same', activation='relu')(input_layer)
+    Kkmaxpool1 = MaxPooling2D(pool_size=2)(Kkcnn1)
+    Kkcnn2 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='valid', activation='relu')(Kkmaxpool1)
+    Kkmaxpool2 = MaxPooling2D(pool_size=2)(Kkcnn2)
+    Kkflat = Flatten()(Kkmaxpool2)
+    Kkdense1 = Dense(units=128, activation='relu')(Kkflat)
+    Kkdropout = Dropout(.5)(Kkdense1)
+    output_layer = Dense(units=NUM_CLASSES, activation='softmax')(Kkdropout)
     model = Model(inputs=input_layer, outputs=output_layer)
     model.compile(optimizer=tf.train.AdamOptimizer(), loss='categorical_crossentropy', metrics=['accuracy'])
     #################################################################

@@ -167,7 +167,7 @@ def main():
     steps = (int)(np.ceil(float(Nt)/float(BATCH_SIZE)))
     for step in range(steps):
         x_in, y_in = get_batch(step, BATCH_SIZE, test_images, test_labels)
-        acc, _ = sess.run([accuracy, train_op], {input_data:x_in, input_labels:y_in, do_rate:1})
+        acc = sess.run([accuracy], {input_data:x_in, input_labels:y_in, do_rate:1})
         total_acc += np.sum(acc)
     total_acc /= np.float32(Nt)
     print('\n--------------------------\n')
