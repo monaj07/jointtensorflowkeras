@@ -134,12 +134,20 @@ def main():
     #input_layer = Input(shape=(HEIGHT, WIDTH, 1), name='input_layer')
     Kcnn1 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='same', activation='relu')(input_data)
     Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn1)
+    """
+    with tf.name_scope('conv2'):
+        with tf.variable_scope('conv2'):
+            W_conv2 = tf.get_variable('w', [3,3,32,32])
+            b_conv2 = tf.get_variable('b', [32])
+        conv2 = tf.nn.conv2d(input=Kmaxpool, filter=W_conv2, strides=[1,1,1,1], padding='VALID')
+        Kcnn2 = tf.nn.relu(conv2 + b_conv2)
+    """
     Kcnn2 = Conv2D(filters=32, kernel_size=3, strides=(1,1), padding='valid', activation='relu')(Kmaxpool)
     Kmaxpool = MaxPooling2D(pool_size=2)(Kcnn2)
     Kflat = Flatten()(Kmaxpool)
     Kdense1 = Dense(units=128, activation='relu')(Kflat)
     Kdropout = Dropout(.5)(Kdense1)
-    output = Dense(units=NUM_CLASSES, activation='softmax')(Kdropout)
+    output = Dense(units=NUM_CLASSES, activation='linear')(Kdropout)
     """ The rest of the code is almost the same as in pure_tf_mnist.py,
     except for the feed_dict, where instead of do_rate in tensorflow,
     we need to provide keras specific dropout tensor 'learning_phase'

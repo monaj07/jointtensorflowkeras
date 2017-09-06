@@ -1,4 +1,5 @@
 mnist_png/
 *.swp
 graph/
-
+snapshots/
+.*

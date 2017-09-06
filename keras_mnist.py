@@ -67,8 +67,8 @@ def main():
 
     # pdb.set_trace()
 
-    training_labels = to_categorical(training_labels, NUM_CLASSES)
-    test_labels = to_categorical(test_labels, NUM_CLASSES)
+#    training_labels = to_categorical(training_labels, NUM_CLASSES)
+#    test_labels = to_categorical(test_labels, NUM_CLASSES)
 
     BATCH_SIZE = 32*8
     WIDTH, HEIGHT = 28, 28
@@ -85,7 +85,7 @@ def main():
     output_layer = Dense(units=NUM_CLASSES, activation='softmax')(dropout)
 
     model = Model(inputs=input_layer, outputs=output_layer)
-    model.compile(optimizer=tf.train.AdamOptimizer(), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer=tf.train.AdamOptimizer(), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
     # pdb.set_trace()
 

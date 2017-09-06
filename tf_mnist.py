@@ -81,7 +81,7 @@ def main():
 
     BATCH_SIZE = 32*8
     WIDTH, HEIGHT = 28, 28
-    epochs = 5
+    epochs = 9
 
     # Defiining the placeholders
     input_data = tf.placeholder(dtype=tf.float32, shape=[None, HEIGHT, WIDTH, 1], name='data')
